@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tersten Konuş!</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #1e1b4b, #0f172a 75%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .app-wrapper {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    /* Top Minimal Bar (Shown during game) */
+    .top-bar {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid var(--card-border);
+      padding: 12px 18px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .score-pill {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .score-item span {
+      color: var(--warning);
+      font-size: 1.1rem;
+      margin-left: 4px;
+    }
+
+    .round-tag {
+      background: #0f172a;
+      padding: 4px 12px;
+      border-radius: 999px;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+
+    /* Main Wizard Card */
+    .screen-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 36px 28px;
+      text-align: center;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .screen-card.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .big-icon {
+      font-size: 3.6rem;
+      margin-bottom: 14px;
+      display: inline-block;
+    }
+
+    h1, h2 {
+      font-size: 1.85rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .highlight-name {
+      color: #818cf8;
+      font-weight: 800;
+    }
+
+    /* Inputs */
+    .form-group {
+      text-align: left;
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .text-input, .select-input {
+      width: 100%;
+      background: #0f172a;
+      border: 2px solid var(--card-border);
+      color: var(--text-main);
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .text-input:focus, .select-input:focus {
+      border-color: var(--primary);
+    }
+
+    .mic-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mic-meter {
+      height: 8px;
+      background: #0f172a;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+      border: 1px solid var(--card-border);
+    }
+
+    .mic-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+      transition: width 0.05s linear;
+    }
+
+    /* Recording pulse wave */
+    .wave-indicator {
+      height: 64px;
+      background: #090d16;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    canvas.wave-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Buttons */
+    .btn-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-row .btn {
+      flex: 1;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 18px 24px;
+      border-radius: 16px;
+      border: none;
+      font-size: 1.12rem;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-record {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      box-shadow: 0 8px 24px rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-record.recording {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      animation: pulseBtn 1.2s infinite;
+    }
+
+    @keyframes pulseBtn {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: #f8fafc;
+    }
+
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    .btn-icon {
+      background: #334155;
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .error-msg {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: #fca5a5;
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      display: none;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--card-border);
+      margin: 22px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <div id="errorMsg" class="error-msg"></div>
+
+    <!-- Top Score Bar (Visible after game starts) -->
+    <div id="topBar" class="top-bar">
+      <div class="score-pill">
+        <div class="score-item"><b id="topP1Name">Kemal</b>: <span id="topP1Score">0</span></div>
+        <div class="score-item"><b id="topP2Name">Betül</b>: <span id="topP2Score">0</span></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span id="topRound" class="round-tag">Tur 1</span>
+        <button id="backToSetupBtn" class="btn-icon" style="padding:6px 10px; font-size:0.8rem;" title="Ayarlar / Oyuncu Değiştir">⚙️</button>
+      </div>
+    </div>
+
+    <!-- EKRAN 0: OYUNCU & MİKROFON SEÇİMİ -->
+    <div id="screenSetup" class="screen-card active">
+      <div class="big-icon">🔄</div>
+      <h1>Tersten Konuş!</h1>
+      <p class="subtitle">Oyuncu isimlerini girin ve mikrofonunuzu seçip hemen başlayın.</p>
+
+      <div class="form-group">
+        <label>1. Oyuncu İsmi</label>
+        <input id="inputP1" class="text-input" type="text" value="Kemal" placeholder="Örn: Kemal" />
+      </div>
+
+      <div class="form-group">
+        <label>2. Oyuncu İsmi</label>
+        <input id="inputP2" class="text-input" type="text" value="Betül" placeholder="Örn: Betül" />
+      </div>
+
+      <div class="form-group" style="margin-bottom: 24px;">
+        <label>🎙️ Mikrofon Seçimi</label>
+        <div class="mic-row">
+          <select id="micSelect" class="select-input">
+            <option value="">Varsayılan Mikrofon</option>
+          </select>
+          <button id="refreshMicBtn" class="btn-icon" type="button" title="Mikrofonları Yenile ve Test Et">🔄</button>
+        </div>
+        <div class="mic-meter" title="Mikrofon Ses Seviyesi">
+          <div id="setupMeterFill" class="mic-meter-fill"></div>
+        </div>
+      </div>
+
+      <button id="startGameBtn" class="btn btn-primary">🎮 Oyuna Başla</button>
+    </div>
+
+    <!-- EKRAN 1: 1. OYUNCU SES KAYDEDİYOR -->
+    <div id="screenP1Record" class="screen-card">
+      <div class="big-icon">🎤</div>
+      <h2 id="p1Title">Sıra Kemal'de!</h2>
+      <p id="p1Sub" class="subtitle">Aklından bir kelime veya kısa bir söz tut ve mikrofona söyle.</p>
+
+      <div class="wave-indicator">
+        <canvas id="canvasP1" class="wave-canvas"></canvas>
+      </div>
+
+      <!-- Kayıt Öncesi / Sırası Tek Buton -->
+      <div id="p1ActionRecord" class="btn-stack">
+        <button id="btnP1Record" class="btn btn-record">🎙️ Kaydı Başlat</button>
+      </div>
+
+      <!-- Kayıt Bitince Çıkan Seçenekler -->
+      <div id="p1ActionDone" class="btn-stack" style="display: none;">
+        <button id="btnP1SaveNext" class="btn btn-success">✅ Kaydet ve Devam Et</button>
+        <div class="btn-row">
+          <button id="btnP1Listen" class="btn btn-secondary">▶️ Dinle</button>
+          <button id="btnP1Retry" class="btn btn-secondary">🔄 Tekrar Dene</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EKRAN 2: TELEFONU / MİKROFONU 2. OYUNCUYA VER -->
+    <div id="screenPass" class="screen-card">
+      <div class="big-icon">📲</div>
+      <h2 id="passTitle">Şimdi Betül'e Ver!</h2>
+      <p id="passSub" class="subtitle">Ses tersten çevrildi. Cihazı <b>Betül</b>'e uzat!</p>
+
+      <button id="btnPassReady" class="btn btn-primary">👍 Hazırım, Başla!</button>
+    </div>
+
+    <!-- EKRAN 3: 2. OYUNCU DİNLİYOR VE TAKLİT EDİYOR -->
+    <div id="screenP2Record" class="screen-card">
+      <div class="big-icon">🎧</div>
+      <h2 id="p2Title">Betül Taklit Ediyor</h2>
+      <p id="p2Sub" class="subtitle">Önce tersten sesi dinle, sonra duyduğun şeyi aklında kaldığı gibi taklit et!</p>
+
+      <div class="wave-indicator">
+        <canvas id="canvasP2" class="wave-canvas"></canvas>
+      </div>
+
+      <!-- Taklit Kaydı Öncesi -->
+      <div id="p2ActionRecord" class="btn-stack">
+        <button id="btnP2ListenRev" class="btn btn-primary">🔊 Tersten Sesi Dinle</button>
+        <button id="btnP2Record" class="btn btn-record">🎙️ Taklit Kaydını Başlat</button>
+      </div>
+
+      <!-- Taklit Kaydı Bitince -->
+      <div id="p2ActionDone" class="btn-stack" style="display: none;">
+        <button id="btnP2SaveNext" class="btn btn-success">✨ Kaydet ve Sonucu Gör</button>
+        <div class="btn-row">
+          <button id="btnP2Retry" class="btn btn-secondary">🔄 Tekrar Dene</button>
+          <button id="btnP2ListenRevAgain" class="btn btn-secondary">🔊 Tersten Sesi Dinle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EKRAN 4: SONUÇ EKRANI -->
+    <div id="screenResult" class="screen-card">
+      <div class="big-icon">🎉</div>
+      <h2>Bakalım Ne Çıktı?</h2>
+      <p id="resultSub" class="subtitle">Betül'ün taklidi düze çevrildi!</p>
+
+      <div class="wave-indicator">
+        <canvas id="canvasResult" class="wave-canvas"></canvas>
+      </div>
+
+      <div class="btn-stack">
+        <button id="btnPlayResult" class="btn btn-success">▶️ Sonucu Çal (Düze Çevrilmiş)</button>
+        <button id="btnPlayOriginal" class="btn btn-primary">🎯 İlk Söylenen Orijinali Çal</button>
+      </div>
+
+      <div class="divider"></div>
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 12px;">Benzemiş mi? Puan verip sıradaki tura geçin:</p>
+      <div class="btn-row">
+        <button id="btnScoreWin" class="btn btn-success">👏 Bildi (+1)</button>
+        <button id="btnScoreLose" class="btn btn-secondary">😅 Bilemedi (0)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let players = { 1: 'Kemal', 2: 'Betül' };
+    let scores = { 1: 0, 2: 0 };
+    let round = 1;
+    let speakerIdx = 1; // 1 or 2
+
+    // Audio
+    let audioCtx = null;
+    let mediaRecorder = null;
+    let chunks = [];
+    let isRecording = false;
+    let currentStream = null;
+    let activeSource = null;
+    let waveAnimId = null;
+    let setupMicStream = null;
+    let setupMeterId = null;
+
+    // Buffers
+    let p1OrigBuf = null;
+    let p1RevBuf = null;
+    let p2OrigBuf = null;
+    let p2RevBuf = null;
+
+    // Elements
+    const errorMsg = document.getElementById('errorMsg');
+    const topBar = document.getElementById('topBar');
+    const topP1Name = document.getElementById('topP1Name');
+    const topP2Name = document.getElementById('topP2Name');
+    const topP1Score = document.getElementById('topP1Score');
+    const topP2Score = document.getElementById('topP2Score');
+    const topRound = document.getElementById('topRound');
+
+    const screens = {
+      setup: document.getElementById('screenSetup'),
+      p1: document.getElementById('screenP1Record'),
+      pass: document.getElementById('screenPass'),
+      p2: document.getElementById('screenP2Record'),
+      result: document.getElementById('screenResult')
+    };
+
+    const micSelect = document.getElementById('micSelect');
+    const setupMeterFill = document.getElementById('setupMeterFill');
+
+    function showError(text) {
+      errorMsg.textContent = text;
+      errorMsg.style.display = 'block';
+    }
+
+    function clearError() {
+      errorMsg.style.display = 'none';
+    }
+
+    function showScreen(name) {
+      clearError();
+      stopPlayback();
+      Object.values(screens).forEach((s) => s.classList.remove('active'));
+      screens[name].classList.add('active');
+      topBar.style.display = name === 'setup' ? 'none' : 'flex';
+    }
+
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AC();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function getConstraints() {
+      const audio = {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: true
+      };
+      if (micSelect.value) {
+        audio.deviceId = { ideal: micSelect.value };
+      }
+      return { audio };
+    }
+
+    async function initMicrophones() {
+      try {
+        if (setupMicStream) {
+          setupMicStream.getTracks().forEach((t) => t.stop());
+        }
+        setupMicStream = await navigator.mediaDevices.getUserMedia(getConstraints());
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const mics = devices.filter((d) => d.kind === 'audioinput');
+        const currentVal = micSelect.value;
+
+        micSelect.innerHTML = '';
+        mics.forEach((m, i) => {
+          const opt = document.createElement('option');
+          opt.value = m.deviceId;
+          opt.textContent = m.label || `Mikrofon ${i + 1}`;
+          micSelect.appendChild(opt);
+        });
+
+        if (currentVal && mics.some((m) => m.deviceId === currentVal)) {
+          micSelect.value = currentVal;
+        }
+
+        // Live meter on setup screen
+        const ctx = getAudioCtx();
+        const src = ctx.createMediaStreamSource(setupMicStream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        src.connect(analyser);
+        const data = new Uint8Array(analyser.frequencyBinCount);
+
+        if (setupMeterId) cancelAnimationFrame(setupMeterId);
+        function tickMeter() {
+          if (!screens.setup.classList.contains('active')) return;
+          setupMeterId = requestAnimationFrame(tickMeter);
+          analyser.getByteTimeDomainData(data);
+          let peak = 0;
+          for (let i = 0; i < data.length; i++) {
+            const v = Math.abs(data[i] - 128) / 128;
+            if (v > peak) peak = v;
+          }
+          setupMeterFill.style.width = Math.min(100, Math.round(peak * 180)) + '%';
+        }
+        tickMeter();
+      } catch (e) {
+        showError('Mikrofon izni alınamadı. Tarayıcıdan mikrofon izni verin.');
+      }
+    }
+
+    function stopSetupMeter() {
+      if (setupMeterId) cancelAnimationFrame(setupMeterId);
+      if (setupMicStream) {
+        setupMicStream.getTracks().forEach((t) => t.stop());
+        setupMicStream = null;
+      }
+    }
+
+    // Reverse audio buffer & trim silence at ends
+    function reverseBuffer(buf) {
+      const ctx = getAudioCtx();
+      const channels = buf.numberOfChannels;
+      const rate = buf.sampleRate;
+      const len = buf.length;
+      const ch0 = buf.getChannelData(0);
+      const threshold = 0.015;
+
+      let start = 0;
+      let end = len - 1;
+      while (start < len && Math.abs(ch0[start]) < threshold) start++;
+      while (end > start && Math.abs(ch0[end]) < threshold) end--;
+
+      const pad = Math.floor(rate * 0.08);
+      start = Math.max(0, start - pad);
+      end = Math.min(len - 1, end + pad);
+
+      const newLen = Math.max(1, end - start + 1);
+      const out = ctx.createBuffer(channels, newLen, rate);
+
+      for (let c = 0; c < channels; c++) {
+        const src = buf.getChannelData(c);
+        const dst = out.getChannelData(c);
+        for (let i = 0; i < newLen; i++) {
+          dst[i] = src[end - i];
+        }
+      }
+      return out;
+    }
+
+    function drawStaticWave(canvasEl, buffer, color = '#6366f1') {
+      cancelAnimationFrame(waveAnimId);
+      const ctx2d = canvasEl.getContext('2d');
+      const w = (canvasEl.width = canvasEl.clientWidth * window.devicePixelRatio);
+      const h = (canvasEl.height = canvasEl.clientHeight * window.devicePixelRatio);
+      ctx2d.clearRect(0, 0, w, h);
+      if (!buffer) return;
+
+      const data = buffer.getChannelData(0);
+      const step = Math.ceil(data.length / w);
+      const amp = h / 2;
+      ctx2d.fillStyle = color;
+
+      for (let i = 0; i < w; i++) {
+        let min = 1.0, max = -1.0;
+        for (let j = 0; j < step; j++) {
+          const d = data[i * step + j];
+          if (d < min) min = d;
+          if (d > max) max = d;
+        }
+        const y = (1 + min) * amp;
+        const barH = Math.max(2, (max - min) * amp);
+        ctx2d.fillRect(i, y, 1, barH);
+      }
+    }
+
+    function drawLiveWave(canvasEl, stream) {
+      const ctx = getAudioCtx();
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      src.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const ctx2d = canvasEl.getContext('2d');
+
+      function frame() {
+        waveAnimId = requestAnimationFrame(frame);
+        analyser.getByteTimeDomainData(data);
+        const w = (canvasEl.width = canvasEl.clientWidth * window.devicePixelRatio);
+        const h = (canvasEl.height = canvasEl.clientHeight * window.devicePixelRatio);
+        ctx2d.clearRect(0, 0, w, h);
+        ctx2d.lineWidth = 3 * window.devicePixelRatio;
+        ctx2d.strokeStyle = '#ef4444';
+        ctx2d.beginPath();
+        const slice = w / data.length;
+        let x = 0;
+        for (let i = 0; i < data.length; i++) {
+          const y = (data[i] / 128.0) * (h / 2);
+          if (i === 0) ctx2d.moveTo(x, y);
+          else ctx2d.lineTo(x, y);
+          x += slice;
+        }
+        ctx2d.stroke();
+      }
+      frame();
+    }
+
+    function stopPlayback() {
+      if (activeSource) {
+        try { activeSource.stop(); } catch (e) {}
+        activeSource = null;
+      }
+    }
+
+    function playBuffer(buffer, canvasEl, color = '#10b981') {
+      if (!buffer) return;
+      stopPlayback();
+      const ctx = getAudioCtx();
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(ctx.destination);
+      if (canvasEl) drawStaticWave(canvasEl, buffer, color);
+      activeSource = src;
+      src.start(0);
+    }
+
+    function getSpeaker() {
+      return players[speakerIdx];
+    }
+
+    function getGuesser() {
+      return players[speakerIdx === 1 ? 2 : 1];
+    }
+
+    function updateTopBar() {
+      topP1Name.textContent = players[1];
+      topP2Name.textContent = players[2];
+      topP1Score.textContent = scores[1];
+      topP2Score.textContent = scores[2];
+      topRound.textContent = `Tur ${round}`;
+    }
+
+    // --- FLOW STEPS ---
+    function startStepP1() {
+      updateTopBar();
+      const speaker = getSpeaker();
+      document.getElementById('p1Title').innerHTML = `<span class="highlight-name">${speaker}</span> Ses Kaydediyor`;
+      document.getElementById('p1Sub').innerHTML = `<b>${speaker}</b>, mikrofona bir kelime veya kısa bir söz söyle.`;
+
+      document.getElementById('p1ActionRecord').style.display = 'flex';
+      document.getElementById('p1ActionDone').style.display = 'none';
+      const btn = document.getElementById('btnP1Record');
+      btn.textContent = '🎙️ Kaydı Başlat';
+      btn.classList.remove('recording');
+
+      showScreen('p1');
+      drawStaticWave(document.getElementById('canvasP1'), null);
+    }
+
+    function startStepPass() {
+      const guesser = getGuesser();
+      document.getElementById('passTitle').innerHTML = `Şimdi <span class="highlight-name">${guesser}</span>'e Ver!`;
+      document.getElementById('passSub').innerHTML = `Ses tersten çevrildi! Şimdi sıra <b>${guesser}</b>'de.`;
+      document.getElementById('btnPassReady').textContent = `👍 Ben ${guesser}, Hazırım!`;
+      showScreen('pass');
+    }
+
+    function startStepP2() {
+      const speaker = getSpeaker();
+      const guesser = getGuesser();
+      document.getElementById('p2Title').innerHTML = `<span class="highlight-name">${guesser}</span> Taklit Ediyor`;
+      document.getElementById('p2Sub').innerHTML = `<b>${speaker}</b>'in tersten sesini dinle ve duyduğun şeyi taklit et!`;
+
+      document.getElementById('p2ActionRecord').style.display = 'flex';
+      document.getElementById('p2ActionDone').style.display = 'none';
+      const btn = document.getElementById('btnP2Record');
+      btn.textContent = '🎙️ Taklit Kaydını Başlat';
+      btn.classList.remove('recording');
+
+      showScreen('p2');
+      const canvasP2 = document.getElementById('canvasP2');
+      drawStaticWave(canvasP2, p1RevBuf, '#818cf8');
+
+      // Otomatik tersten sesi bir kez çal
+      setTimeout(() => playBuffer(p1RevBuf, canvasP2, '#818cf8'), 250);
+    }
+
+    function startStepResult() {
+      const speaker = getSpeaker();
+      const guesser = getGuesser();
+      document.getElementById('resultSub').innerHTML =
+        `<b>${guesser}</b>'in taklidi düze çevrildi! Bakalım <b>${speaker}</b>'in dediğine benzedi mi?`;
+
+      showScreen('result');
+      const canvasRes = document.getElementById('canvasResult');
+      drawStaticWave(canvasRes, p2RevBuf, '#10b981');
+
+      // Otomatik olarak düze çevrilmiş sonucu çal
+      setTimeout(() => playBuffer(p2RevBuf, canvasRes, '#10b981'), 250);
+    }
+
+    // Recording helper for P1 & P2
+    async function handleRecord(playerStep) {
+      clearError();
+      stopPlayback();
+
+      const btnEl = playerStep === 1 ? document.getElementById('btnP1Record') : document.getElementById('btnP2Record');
+      const canvasEl = playerStep === 1 ? document.getElementById('canvasP1') : document.getElementById('canvasP2');
+
+      if (isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        return;
+      }
+
+      try {
+        const ctx = getAudioCtx();
+        currentStream = await navigator.mediaDevices.getUserMedia(getConstraints());
+        chunks = [];
+        mediaRecorder = new MediaRecorder(currentStream);
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          cancelAnimationFrame(waveAnimId);
+          if (currentStream) currentStream.getTracks().forEach((t) => t.stop());
+          btnEl.classList.remove('recording');
+
+          try {
+            const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+            const ab = await blob.arrayBuffer();
+            const decoded = await ctx.decodeAudioData(ab);
+
+            if (playerStep === 1) {
+              p1OrigBuf = decoded;
+              p1RevBuf = reverseBuffer(decoded);
+              drawStaticWave(canvasEl, p1OrigBuf, '#6366f1');
+              document.getElementById('p1ActionRecord').style.display = 'none';
+              document.getElementById('p1ActionDone').style.display = 'flex';
+            } else {
+              p2OrigBuf = decoded;
+              p2RevBuf = reverseBuffer(decoded);
+              drawStaticWave(canvasEl, p2OrigBuf, '#ec4899');
+              document.getElementById('p2ActionRecord').style.display = 'none';
+              document.getElementById('p2ActionDone').style.display = 'flex';
+            }
+          } catch (err) {
+            showError('Ses çok kısa oldu veya işlenemedi, lütfen tekrar dene.');
+            btnEl.textContent = playerStep === 1 ? '🎙️ Kaydı Başlat' : '🎙️ Taklit Kaydını Başlat';
+          }
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        btnEl.textContent = '⏹️ Kaydı Bitir';
+        btnEl.classList.add('recording');
+        drawLiveWave(canvasEl, currentStream);
+      } catch (err) {
+        showError('Mikrofona erişilemedi!');
+      }
+    }
+
+    // Event bindings
+    document.getElementById('refreshMicBtn').addEventListener('click', initMicrophones);
+    micSelect.addEventListener('change', initMicrophones);
+
+    document.getElementById('startGameBtn').addEventListener('click', () => {
+      players[1] = document.getElementById('inputP1').value.trim() || '1. Oyuncu';
+      players[2] = document.getElementById('inputP2').value.trim() || '2. Oyuncu';
+      stopSetupMeter();
+      startStepP1();
+    });
+
+    document.getElementById('backToSetupBtn').addEventListener('click', () => {
+      showScreen('setup');
+      initMicrophones();
+    });
+
+    // Screen 1 Events
+    document.getElementById('btnP1Record').addEventListener('click', () => handleRecord(1));
+    document.getElementById('btnP1Listen').addEventListener('click', () => {
+      playBuffer(p1OrigBuf, document.getElementById('canvasP1'), '#6366f1');
+    });
+    document.getElementById('btnP1Retry').addEventListener('click', startStepP1);
+    document.getElementById('btnP1SaveNext').addEventListener('click', startStepPass);
+
+    // Screen 2 Events
+    document.getElementById('btnPassReady').addEventListener('click', startStepP2);
+
+    // Screen 3 Events
+    document.getElementById('btnP2ListenRev').addEventListener('click', () => {
+      playBuffer(p1RevBuf, document.getElementById('canvasP2'), '#818cf8');
+    });
+    document.getElementById('btnP2ListenRevAgain').addEventListener('click', () => {
+      playBuffer(p1RevBuf, document.getElementById('canvasP2'), '#818cf8');
+    });
+    document.getElementById('btnP2Record').addEventListener('click', () => handleRecord(2));
+    document.getElementById('btnP2Retry').addEventListener('click', startStepP2);
+    document.getElementById('btnP2SaveNext').addEventListener('click', startStepResult);
+
+    // Screen 4 Events
+    document.getElementById('btnPlayResult').addEventListener('click', () => {
+      playBuffer(p2RevBuf, document.getElementById('canvasResult'), '#10b981');
+    });
+    document.getElementById('btnPlayOriginal').addEventListener('click', () => {
+      playBuffer(p1OrigBuf, document.getElementById('canvasResult'), '#6366f1');
+    });
+
+    function nextRound(guesserWon) {
+      const guesserIdx = speakerIdx === 1 ? 2 : 1;
+      if (guesserWon) scores[guesserIdx] += 1;
+      round += 1;
+      speakerIdx = speakerIdx === 1 ? 2 : 1; // Sırayı değiştir
+      startStepP1();
+    }
+
+    document.getElementById('btnScoreWin').addEventListener('click', () => nextRound(true));
+    document.getElementById('btnScoreLose').addEventListener('click', () => nextRound(false));
+
+    // İlk açılışta mikrofonları listele
+    initMicrophones();
+  </script>
+</body>
+</html>
