@@ -2,8 +2,12 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Tersten Konuş!</title>
+  <!-- PeerJS for Serverless WebRTC Online Multiplayer -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     :root {
       --bg-dark: #0f172a;
@@ -33,7 +37,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 16px;
     }
 
     .app-wrapper {
@@ -41,17 +45,17 @@
       max-width: 520px;
     }
 
-    /* Top Minimal Bar (Shown during game) */
+    /* Top Minimal Bar */
     .top-bar {
       display: none;
       justify-content: space-between;
       align-items: center;
-      background: rgba(30, 41, 59, 0.75);
+      background: rgba(30, 41, 59, 0.85);
       border: 1px solid var(--card-border);
-      padding: 12px 18px;
+      padding: 12px 16px;
       border-radius: 16px;
-      margin-bottom: 16px;
-      font-size: 0.95rem;
+      margin-bottom: 14px;
+      font-size: 0.92rem;
       font-weight: 700;
     }
 
@@ -59,20 +63,31 @@
       display: flex;
       gap: 14px;
       align-items: center;
+      flex-wrap: wrap;
     }
 
     .score-item span {
       color: var(--warning);
-      font-size: 1.1rem;
-      margin-left: 4px;
+      font-size: 1.08rem;
+      margin-left: 3px;
     }
 
     .round-tag {
       background: #0f172a;
-      padding: 4px 12px;
+      padding: 4px 10px;
       border-radius: 999px;
       color: var(--text-muted);
-      font-size: 0.82rem;
+      font-size: 0.8rem;
+    }
+
+    .online-badge {
+      display: none;
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      border: 1px solid var(--accent);
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
     }
 
     /* Main Wizard Card */
@@ -80,11 +95,11 @@
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 24px;
-      padding: 36px 28px;
+      padding: 32px 24px;
       text-align: center;
       box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
       display: none;
-      animation: fadeIn 0.25s ease;
+      animation: fadeIn 0.22s ease;
     }
 
     .screen-card.active {
@@ -92,28 +107,28 @@
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
+      from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
     .big-icon {
-      font-size: 3.6rem;
-      margin-bottom: 14px;
+      font-size: 3.4rem;
+      margin-bottom: 12px;
       display: inline-block;
     }
 
     h1, h2 {
-      font-size: 1.85rem;
+      font-size: 1.75rem;
       font-weight: 800;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       line-height: 1.25;
     }
 
     .subtitle {
       color: var(--text-muted);
-      font-size: 1.05rem;
+      font-size: 1rem;
       line-height: 1.5;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
 
     .highlight-name {
@@ -121,15 +136,45 @@
       font-weight: 800;
     }
 
+    /* Mode Selector Tabs */
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: #0f172a;
+      padding: 6px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      margin-bottom: 22px;
+    }
+
+    .mode-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 12px 10px;
+      border-radius: 12px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-tab.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    }
+
     /* Inputs */
     .form-group {
       text-align: left;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .form-group label {
       display: block;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       font-weight: 700;
       color: var(--text-muted);
       margin-bottom: 6px;
@@ -140,9 +185,9 @@
       background: #0f172a;
       border: 2px solid var(--card-border);
       color: var(--text-main);
-      padding: 14px 16px;
+      padding: 13px 15px;
       border-radius: 14px;
-      font-size: 1.05rem;
+      font-size: 1rem;
       font-weight: 600;
       outline: none;
       transition: border-color 0.2s;
@@ -150,6 +195,13 @@
 
     .text-input:focus, .select-input:focus {
       border-color: var(--primary);
+    }
+
+    .code-input {
+      text-align: center;
+      font-size: 1.5rem;
+      letter-spacing: 6px;
+      font-weight: 800;
     }
 
     .mic-row {
@@ -174,13 +226,30 @@
       transition: width 0.05s linear;
     }
 
-    /* Recording pulse wave */
+    /* Room Code Display Box */
+    .room-code-box {
+      background: #0f172a;
+      border: 2px dashed #818cf8;
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .room-code-digits {
+      font-size: 2.8rem;
+      font-weight: 900;
+      letter-spacing: 8px;
+      color: #a5b4fc;
+      margin: 6px 0;
+    }
+
+    /* Wave Visualizer */
     .wave-indicator {
       height: 64px;
       background: #090d16;
       border: 1px solid var(--card-border);
       border-radius: 16px;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -203,7 +272,7 @@
 
     .btn-row {
       display: flex;
-      gap: 12px;
+      gap: 10px;
     }
 
     .btn-row .btn {
@@ -212,18 +281,23 @@
 
     .btn {
       width: 100%;
-      padding: 18px 24px;
+      padding: 16px 20px;
       border-radius: 16px;
       border: none;
-      font-size: 1.12rem;
+      font-size: 1.06rem;
       font-weight: 800;
       color: #fff;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .btn:hover:not(:disabled) {
@@ -264,7 +338,7 @@
       color: #f8fafc;
     }
 
-    .btn-secondary:hover {
+    .btn-secondary:hover:not(:disabled) {
       background: #475569;
     }
 
@@ -272,7 +346,7 @@
       background: #334155;
       color: #fff;
       border: none;
-      padding: 14px;
+      padding: 13px;
       border-radius: 14px;
       cursor: pointer;
       font-size: 1rem;
@@ -284,7 +358,7 @@
       color: #fca5a5;
       padding: 12px;
       border-radius: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       display: none;
       font-size: 0.9rem;
       text-align: center;
@@ -293,7 +367,22 @@
     .divider {
       height: 1px;
       background: var(--card-border);
-      margin: 22px 0;
+      margin: 20px 0;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(99, 102, 241, 0.25);
+      border-top-color: #818cf8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -301,48 +390,106 @@
   <div class="app-wrapper">
     <div id="errorMsg" class="error-msg"></div>
 
-    <!-- Top Score Bar (Visible after game starts) -->
+    <!-- Top Score Bar -->
     <div id="topBar" class="top-bar">
       <div class="score-pill">
-        <div class="score-item"><b id="topP1Name">Kemal</b>: <span id="topP1Score">0</span></div>
-        <div class="score-item"><b id="topP2Name">Betül</b>: <span id="topP2Score">0</span></div>
+        <div class="score-item"><b id="topP1Name">Kemal</b>:<span id="topP1Score">0</span></div>
+        <div class="score-item"><b id="topP2Name">Betül</b>:<span id="topP2Score">0</span></div>
       </div>
-      <div style="display:flex; align-items:center; gap:8px;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span id="onlineBadge" class="online-badge">🟢 Online</span>
         <span id="topRound" class="round-tag">Tur 1</span>
-        <button id="backToSetupBtn" class="btn-icon" style="padding:6px 10px; font-size:0.8rem;" title="Ayarlar / Oyuncu Değiştir">⚙️</button>
+        <button id="backToSetupBtn" class="btn-icon" style="padding:6px 10px; font-size:0.8rem;" title="Ana Menü">⚙️</button>
       </div>
     </div>
 
-    <!-- EKRAN 0: OYUNCU & MİKROFON SEÇİMİ -->
+    <!-- EKRAN 0: KURULUM (TEK CİHAZ VEYA UZAKTAN ODA) -->
     <div id="screenSetup" class="screen-card active">
       <div class="big-icon">🔄</div>
       <h1>Tersten Konuş!</h1>
-      <p class="subtitle">Oyuncu isimlerini girin ve mikrofonunuzu seçip hemen başlayın.</p>
+      <p class="subtitle" style="margin-bottom: 16px;">Nasıl oynamak istediğinizi seçin:</p>
 
-      <div class="form-group">
-        <label>1. Oyuncu İsmi</label>
-        <input id="inputP1" class="text-input" type="text" value="Kemal" placeholder="Örn: Kemal" />
+      <!-- Mod Seçimi -->
+      <div class="mode-tabs">
+        <button id="tabLocal" class="mode-tab active" type="button">📱 Tek Cihazda (Yan Yana)</button>
+        <button id="tabOnline" class="mode-tab" type="button">🌐 Uzaktan (2 Ayrı Cihaz)</button>
       </div>
 
-      <div class="form-group">
-        <label>2. Oyuncu İsmi</label>
-        <input id="inputP2" class="text-input" type="text" value="Betül" placeholder="Örn: Betül" />
+      <!-- TEK CİHAZ FORMU -->
+      <div id="localSetupForm">
+        <div class="form-group">
+          <label>1. Oyuncu İsmi</label>
+          <input id="inputP1" class="text-input" type="text" value="Kemal" placeholder="Örn: Kemal" />
+        </div>
+        <div class="form-group">
+          <label>2. Oyuncu İsmi</label>
+          <input id="inputP2" class="text-input" type="text" value="Betül" placeholder="Örn: Betül" />
+        </div>
       </div>
 
-      <div class="form-group" style="margin-bottom: 24px;">
+      <!-- UZAKTAN (ONLINE) FORMU -->
+      <div id="onlineSetupForm" style="display: none;">
+        <div class="form-group">
+          <label>Senin İsmin</label>
+          <input id="inputMyName" class="text-input" type="text" value="Kemal" placeholder="İsmini yaz..." />
+        </div>
+      </div>
+
+      <!-- MİKROFON SEÇİMİ (Her İki Mod İçin Ortak) -->
+      <div class="form-group" style="margin-bottom: 22px;">
         <label>🎙️ Mikrofon Seçimi</label>
         <div class="mic-row">
           <select id="micSelect" class="select-input">
             <option value="">Varsayılan Mikrofon</option>
           </select>
-          <button id="refreshMicBtn" class="btn-icon" type="button" title="Mikrofonları Yenile ve Test Et">🔄</button>
+          <button id="refreshMicBtn" class="btn-icon" type="button" title="Mikrofonları Yenile">🔄</button>
         </div>
         <div class="mic-meter" title="Mikrofon Ses Seviyesi">
           <div id="setupMeterFill" class="mic-meter-fill"></div>
         </div>
       </div>
 
-      <button id="startGameBtn" class="btn btn-primary">🎮 Oyuna Başla</button>
+      <!-- Tek Cihaz Başlat Butonu -->
+      <div id="localStartActions">
+        <button id="startGameBtn" class="btn btn-primary">🎮 Oyuna Başla</button>
+      </div>
+
+      <!-- Online Oda Kur / Katıl Butonları -->
+      <div id="onlineStartActions" style="display: none;">
+        <div class="btn-stack">
+          <button id="btnCreateRoom" class="btn btn-primary">🏠 Yeni Oda Kur (Kod Oluştur)</button>
+          <div class="divider" style="margin: 8px 0;"></div>
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label>Arkadaşının Oda Kodu Varsa Gir:</label>
+            <input id="inputRoomCode" class="text-input code-input" type="text" maxlength="4" inputmode="numeric" placeholder="0000" />
+          </div>
+          <button id="btnJoinRoom" class="btn btn-success">🔑 Odaya Katıl</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EKRAN Lobi: ODA KURULDU, 2. OYUNCU BEKLENİYOR -->
+    <div id="screenLobby" class="screen-card">
+      <div class="big-icon">📡</div>
+      <h2>Oda Hazır!</h2>
+      <p class="subtitle">Diğer oyuncunun bağlanması için aşağıdaki 4 haneli kodu veya davet linkini gönder:</p>
+
+      <div class="room-code-box">
+        <div style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase;">Oda Kodu</div>
+        <div id="lobbyCodeText" class="room-code-digits">----</div>
+      </div>
+
+      <div class="btn-stack">
+        <button id="btnCopyInvite" class="btn btn-primary">📋 Davet Linkini Kopyala</button>
+        <button id="btnCancelLobby" class="btn btn-secondary">🔙 İptal Et</button>
+      </div>
+    </div>
+
+    <!-- EKRAN Bekleme: ONLINE MODDA DİĞER OYUNCU KAYIT YAPIYOR -->
+    <div id="screenWaitPeer" class="screen-card">
+      <div class="spinner"></div>
+      <h2 id="waitPeerTitle">Karşı Taraf Bekleniyor...</h2>
+      <p id="waitPeerSub" class="subtitle">Lütfen bekle, sıra birazdan sana geçecek!</p>
     </div>
 
     <!-- EKRAN 1: 1. OYUNCU SES KAYDEDİYOR -->
@@ -355,12 +502,10 @@
         <canvas id="canvasP1" class="wave-canvas"></canvas>
       </div>
 
-      <!-- Kayıt Öncesi / Sırası Tek Buton -->
       <div id="p1ActionRecord" class="btn-stack">
         <button id="btnP1Record" class="btn btn-record">🎙️ Kaydı Başlat</button>
       </div>
 
-      <!-- Kayıt Bitince Çıkan Seçenekler -->
       <div id="p1ActionDone" class="btn-stack" style="display: none;">
         <button id="btnP1SaveNext" class="btn btn-success">✅ Kaydet ve Devam Et</button>
         <div class="btn-row">
@@ -370,7 +515,7 @@
       </div>
     </div>
 
-    <!-- EKRAN 2: TELEFONU / MİKROFONU 2. OYUNCUYA VER -->
+    <!-- EKRAN 2: TELEFONU 2. OYUNCUYA VER (Sadece Tek Cihaz Modunda) -->
     <div id="screenPass" class="screen-card">
       <div class="big-icon">📲</div>
       <h2 id="passTitle">Şimdi Betül'e Ver!</h2>
@@ -389,13 +534,11 @@
         <canvas id="canvasP2" class="wave-canvas"></canvas>
       </div>
 
-      <!-- Taklit Kaydı Öncesi -->
       <div id="p2ActionRecord" class="btn-stack">
         <button id="btnP2ListenRev" class="btn btn-primary">🔊 Tersten Sesi Dinle</button>
         <button id="btnP2Record" class="btn btn-record">🎙️ Taklit Kaydını Başlat</button>
       </div>
 
-      <!-- Taklit Kaydı Bitince -->
       <div id="p2ActionDone" class="btn-stack" style="display: none;">
         <button id="btnP2SaveNext" class="btn btn-success">✨ Kaydet ve Sonucu Gör</button>
         <div class="btn-row">
@@ -409,7 +552,7 @@
     <div id="screenResult" class="screen-card">
       <div class="big-icon">🎉</div>
       <h2>Bakalım Ne Çıktı?</h2>
-      <p id="resultSub" class="subtitle">Betül'ün taklidi düze çevrildi!</p>
+      <p id="resultSub" class="subtitle">Taklit düze çevrildi!</p>
 
       <div class="wave-indicator">
         <canvas id="canvasResult" class="wave-canvas"></canvas>
@@ -430,11 +573,19 @@
   </div>
 
   <script>
-    // State
+    // Game Mode & State
+    let isOnlineMode = false;
+    let myPlayerNum = 1; // 1 (Host) or 2 (Guest) in Online mode
     let players = { 1: 'Kemal', 2: 'Betül' };
     let scores = { 1: 0, 2: 0 };
     let round = 1;
     let speakerIdx = 1; // 1 or 2
+
+    // PeerJS Online State
+    let peer = null;
+    let conn = null;
+    let currentRoomCode = '';
+    const PEER_PREFIX = 'tersten-konus-oda-';
 
     // Audio
     let audioCtx = null;
@@ -461,9 +612,12 @@
     const topP1Score = document.getElementById('topP1Score');
     const topP2Score = document.getElementById('topP2Score');
     const topRound = document.getElementById('topRound');
+    const onlineBadge = document.getElementById('onlineBadge');
 
     const screens = {
       setup: document.getElementById('screenSetup'),
+      lobby: document.getElementById('screenLobby'),
+      waitPeer: document.getElementById('screenWaitPeer'),
       p1: document.getElementById('screenP1Record'),
       pass: document.getElementById('screenPass'),
       p2: document.getElementById('screenP2Record'),
@@ -487,7 +641,9 @@
       stopPlayback();
       Object.values(screens).forEach((s) => s.classList.remove('active'));
       screens[name].classList.add('active');
-      topBar.style.display = name === 'setup' ? 'none' : 'flex';
+      const hideTop = name === 'setup' || name === 'lobby';
+      topBar.style.display = hideTop ? 'none' : 'flex';
+      onlineBadge.style.display = isOnlineMode ? 'inline-block' : 'none';
     }
 
     function getAudioCtx() {
@@ -533,7 +689,6 @@
           micSelect.value = currentVal;
         }
 
-        // Live meter on setup screen
         const ctx = getAudioCtx();
         const src = ctx.createMediaStreamSource(setupMicStream);
         const analyser = ctx.createAnalyser();
@@ -596,6 +751,61 @@
         }
       }
       return out;
+    }
+
+    // Convert AudioBuffer to universal 16-bit mono WAV Base64 string (100% iOS/Android/PC compatible)
+    function audioBufferToWavBase64(buffer) {
+      const numOfChan = 1;
+      const sampleRate = buffer.sampleRate;
+      const samples = buffer.getChannelData(0);
+      const length = samples.length * 2 + 44;
+      const outBuf = new ArrayBuffer(length);
+      const view = new DataView(outBuf);
+
+      function writeStr(offset, str) {
+        for (let i = 0; i < str.length; i++) {
+          view.setUint8(offset + i, str.charCodeAt(i));
+        }
+      }
+
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numOfChan, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      view.setUint32(40, samples.length * 2, true);
+
+      let offset = 44;
+      for (let i = 0; i < samples.length; i++, offset += 2) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+
+      const bytes = new Uint8Array(outBuf);
+      let binary = '';
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+      }
+      return btoa(binary);
+    }
+
+    async function wavBase64ToAudioBuffer(base64) {
+      const binary = atob(base64);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const ctx = getAudioCtx();
+      return await ctx.decodeAudioData(bytes.buffer);
     }
 
     function drawStaticWave(canvasEl, buffer, color = '#6366f1') {
@@ -691,6 +901,24 @@
     }
 
     // --- FLOW STEPS ---
+    function startRoundFlow() {
+      updateTopBar();
+      const speaker = getSpeaker();
+      const guesser = getGuesser();
+
+      if (isOnlineMode && myPlayerNum !== speakerIdx) {
+        // Ben bu turda tahmin edenim, karşı tarafın kelime kaydetmesini bekliyorum
+        document.getElementById('waitPeerTitle').innerHTML =
+          `<span class="highlight-name">${speaker}</span> Ses Kaydediyor...`;
+        document.getElementById('waitPeerSub').innerHTML =
+          `<b>${speaker}</b> kelimesini kaydedip gönderdiğinde ekranın otomatik açılacak!`;
+        showScreen('waitPeer');
+        return;
+      }
+
+      startStepP1();
+    }
+
     function startStepP1() {
       updateTopBar();
       const speaker = getSpeaker();
@@ -731,11 +959,11 @@
       const canvasP2 = document.getElementById('canvasP2');
       drawStaticWave(canvasP2, p1RevBuf, '#818cf8');
 
-      // Otomatik tersten sesi bir kez çal
       setTimeout(() => playBuffer(p1RevBuf, canvasP2, '#818cf8'), 250);
     }
 
     function startStepResult() {
+      updateTopBar();
       const speaker = getSpeaker();
       const guesser = getGuesser();
       document.getElementById('resultSub').innerHTML =
@@ -745,7 +973,6 @@
       const canvasRes = document.getElementById('canvasResult');
       drawStaticWave(canvasRes, p2RevBuf, '#10b981');
 
-      // Otomatik olarak düze çevrilmiş sonucu çal
       setTimeout(() => playBuffer(p2RevBuf, canvasRes, '#10b981'), 250);
     }
 
@@ -812,18 +1039,198 @@
       }
     }
 
-    // Event bindings
+    // --- ONLINE PEERJS NETWORKING ---
+    function cleanupPeer() {
+      if (conn) {
+        try { conn.close(); } catch (e) {}
+        conn = null;
+      }
+      if (peer) {
+        try { peer.destroy(); } catch (e) {}
+        peer = null;
+      }
+    }
+
+    function sendPeerMessage(msg) {
+      if (conn && conn.open) {
+        conn.send(msg);
+      }
+    }
+
+    function setupConnectionHandlers(connection) {
+      conn = connection;
+
+      conn.on('open', () => {
+        if (myPlayerNum === 2) {
+          // Guest sends their name to Host
+          sendPeerMessage({
+            type: 'JOIN_INFO',
+            name: document.getElementById('inputMyName').value.trim() || '2. Oyuncu'
+          });
+        }
+      });
+
+      conn.on('data', async (data) => {
+        if (!data || !data.type) return;
+
+        if (data.type === 'JOIN_INFO' && myPlayerNum === 1) {
+          players[2] = data.name;
+          scores = { 1: 0, 2: 0 };
+          round = 1;
+          speakerIdx = 1;
+          sendPeerMessage({
+            type: 'START_GAME',
+            players,
+            scores,
+            round,
+            speakerIdx
+          });
+          startRoundFlow();
+        } else if (data.type === 'START_GAME') {
+          players = data.players;
+          scores = data.scores;
+          round = data.round;
+          speakerIdx = data.speakerIdx;
+          startRoundFlow();
+        } else if (data.type === 'P1_AUDIO') {
+          // Guesser receives P1's original & reversed audio
+          p1OrigBuf = await wavBase64ToAudioBuffer(data.origWav);
+          p1RevBuf = reverseBuffer(p1OrigBuf);
+          startStepP2();
+        } else if (data.type === 'P2_AUDIO') {
+          // Speaker receives P2's imitation audio -> both show result!
+          p2OrigBuf = await wavBase64ToAudioBuffer(data.origWav);
+          p2RevBuf = reverseBuffer(p2OrigBuf);
+          startStepResult();
+        } else if (data.type === 'NEXT_ROUND') {
+          scores = data.scores;
+          round = data.round;
+          speakerIdx = data.speakerIdx;
+          startRoundFlow();
+        }
+      });
+
+      conn.on('close', () => {
+        showError('Karşı tarafın bağlantısı koptu.');
+      });
+    }
+
+    function createOnlineRoom() {
+      clearError();
+      stopSetupMeter();
+      cleanupPeer();
+
+      isOnlineMode = true;
+      myPlayerNum = 1;
+      players[1] = document.getElementById('inputMyName').value.trim() || '1. Oyuncu';
+      currentRoomCode = String(Math.floor(1000 + Math.random() * 9000));
+
+      document.getElementById('lobbyCodeText').textContent = currentRoomCode;
+      showScreen('lobby');
+
+      peer = new Peer(PEER_PREFIX + currentRoomCode);
+      peer.on('connection', (incomingConn) => {
+        setupConnectionHandlers(incomingConn);
+      });
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          createOnlineRoom(); // Try another random 4-digit code
+        } else {
+          showError('Bağlantı hatası: ' + err.type);
+        }
+      });
+    }
+
+    function joinOnlineRoom() {
+      const code = document.getElementById('inputRoomCode').value.trim();
+      if (code.length !== 4) {
+        showError('Lütfen 4 haneli oda kodunu girin!');
+        return;
+      }
+
+      clearError();
+      stopSetupMeter();
+      cleanupPeer();
+
+      isOnlineMode = true;
+      myPlayerNum = 2;
+      currentRoomCode = code;
+
+      document.getElementById('waitPeerTitle').textContent = `Oda ${code}'e Bağlanılıyor...`;
+      document.getElementById('waitPeerSub').textContent = 'Lütfen birkaç saniye bekle...';
+      showScreen('waitPeer');
+
+      peer = new Peer();
+      peer.on('open', () => {
+        const outgoingConn = peer.connect(PEER_PREFIX + code, { reliable: true });
+        setupConnectionHandlers(outgoingConn);
+      });
+      peer.on('error', () => {
+        showScreen('setup');
+        showError('Bu koda ait aktif bir oda bulunamadı! Kodu kontrol et.');
+      });
+    }
+
+    // --- UI EVENT LISTENERS ---
+    const tabLocal = document.getElementById('tabLocal');
+    const tabOnline = document.getElementById('tabOnline');
+    const localSetupForm = document.getElementById('localSetupForm');
+    const onlineSetupForm = document.getElementById('onlineSetupForm');
+    const localStartActions = document.getElementById('localStartActions');
+    const onlineStartActions = document.getElementById('onlineStartActions');
+
+    function setSetupTab(online) {
+      tabLocal.classList.toggle('active', !online);
+      tabOnline.classList.toggle('active', online);
+      localSetupForm.style.display = online ? 'none' : 'block';
+      onlineSetupForm.style.display = online ? 'block' : 'none';
+      localStartActions.style.display = online ? 'none' : 'block';
+      onlineStartActions.style.display = online ? 'block' : 'none';
+    }
+
+    tabLocal.addEventListener('click', () => setSetupTab(false));
+    tabOnline.addEventListener('click', () => setSetupTab(true));
+
     document.getElementById('refreshMicBtn').addEventListener('click', initMicrophones);
     micSelect.addEventListener('change', initMicrophones);
 
+    // Local Start
     document.getElementById('startGameBtn').addEventListener('click', () => {
+      isOnlineMode = false;
+      cleanupPeer();
       players[1] = document.getElementById('inputP1').value.trim() || '1. Oyuncu';
       players[2] = document.getElementById('inputP2').value.trim() || '2. Oyuncu';
+      scores = { 1: 0, 2: 0 };
+      round = 1;
+      speakerIdx = 1;
       stopSetupMeter();
-      startStepP1();
+      startRoundFlow();
+    });
+
+    // Online Room Create / Join
+    document.getElementById('btnCreateRoom').addEventListener('click', createOnlineRoom);
+    document.getElementById('btnJoinRoom').addEventListener('click', joinOnlineRoom);
+
+    document.getElementById('btnCopyInvite').addEventListener('click', () => {
+      const inviteUrl = `${window.location.origin}${window.location.pathname}?oda=${currentRoomCode}`;
+      navigator.clipboard.writeText(inviteUrl).then(() => {
+        const btn = document.getElementById('btnCopyInvite');
+        btn.textContent = '✅ Link Kopyalandı! Arkadaşına Gönder';
+        setTimeout(() => {
+          btn.textContent = '📋 Davet Linkini Kopyala';
+        }, 2500);
+      });
+    });
+
+    document.getElementById('btnCancelLobby').addEventListener('click', () => {
+      cleanupPeer();
+      showScreen('setup');
+      initMicrophones();
     });
 
     document.getElementById('backToSetupBtn').addEventListener('click', () => {
+      cleanupPeer();
+      isOnlineMode = false;
       showScreen('setup');
       initMicrophones();
     });
@@ -834,7 +1241,21 @@
       playBuffer(p1OrigBuf, document.getElementById('canvasP1'), '#6366f1');
     });
     document.getElementById('btnP1Retry').addEventListener('click', startStepP1);
-    document.getElementById('btnP1SaveNext').addEventListener('click', startStepPass);
+    document.getElementById('btnP1SaveNext').addEventListener('click', () => {
+      if (isOnlineMode) {
+        const guesser = getGuesser();
+        document.getElementById('waitPeerTitle').innerHTML =
+          `<span class="highlight-name">${guesser}</span> Dinliyor & Taklit Ediyor...`;
+        document.getElementById('waitPeerSub').innerHTML =
+          `Sesin tersten <b>${guesser}</b>'e gönderildi! Taklidini bitirdiğinde sonuç ikinizin ekranında da açılacak.`;
+        showScreen('waitPeer');
+
+        const origWav = audioBufferToWavBase64(p1OrigBuf);
+        sendPeerMessage({ type: 'P1_AUDIO', origWav });
+      } else {
+        startStepPass();
+      }
+    });
 
     // Screen 2 Events
     document.getElementById('btnPassReady').addEventListener('click', startStepP2);
@@ -848,7 +1269,13 @@
     });
     document.getElementById('btnP2Record').addEventListener('click', () => handleRecord(2));
     document.getElementById('btnP2Retry').addEventListener('click', startStepP2);
-    document.getElementById('btnP2SaveNext').addEventListener('click', startStepResult);
+    document.getElementById('btnP2SaveNext').addEventListener('click', () => {
+      if (isOnlineMode) {
+        const origWav = audioBufferToWavBase64(p2OrigBuf);
+        sendPeerMessage({ type: 'P2_AUDIO', origWav });
+      }
+      startStepResult();
+    });
 
     // Screen 4 Events
     document.getElementById('btnPlayResult').addEventListener('click', () => {
@@ -862,14 +1289,32 @@
       const guesserIdx = speakerIdx === 1 ? 2 : 1;
       if (guesserWon) scores[guesserIdx] += 1;
       round += 1;
-      speakerIdx = speakerIdx === 1 ? 2 : 1; // Sırayı değiştir
-      startStepP1();
+      speakerIdx = speakerIdx === 1 ? 2 : 1;
+
+      if (isOnlineMode) {
+        sendPeerMessage({
+          type: 'NEXT_ROUND',
+          scores,
+          round,
+          speakerIdx
+        });
+      }
+      startRoundFlow();
     }
 
     document.getElementById('btnScoreWin').addEventListener('click', () => nextRound(true));
     document.getElementById('btnScoreLose').addEventListener('click', () => nextRound(false));
 
-    // İlk açılışta mikrofonları listele
+    // Check URL parameter ?oda=XXXX for instant room invite!
+    const urlParams = new URLSearchParams(window.location.search);
+    const invitedRoom = urlParams.get('oda');
+    if (invitedRoom && invitedRoom.length === 4) {
+      setSetupTab(true);
+      document.getElementById('inputRoomCode').value = invitedRoom;
+      document.getElementById('inputMyName').value = 'Betül';
+    }
+
+    // Initialize microphones
     initMicrophones();
   </script>
 </body>
